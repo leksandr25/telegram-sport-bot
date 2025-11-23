@@ -1,8 +1,13 @@
 {
   "functions": {
-    "api/webhook.py": {
-      "memory": 128,
-      "maxDuration": 10
+    "api/webhook/index.py": {
+      "runtime": "python3.9"
     }
-  }
+  },
+  "routes": [
+    {
+      "src": "/api/webhook",
+      "dest": "/api/webhook/index.py"
+    }
+  ]
 }
