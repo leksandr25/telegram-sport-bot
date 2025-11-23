@@ -1,16 +1,36 @@
-from bot import handle_update
-import json, asyncio
+import os
+import json
+from http.server import BaseHTTPRequestHandler
+import urllib.request
 
-def handler(request):
-    # Vercel sends raw body as bytes; request.body is string in this environment simulation
-    if request.method != 'POST':
-        return {'statusCode': 200, 'body': 'OK'}
+BOT_TOKEN = os.getenv("BOT_TOKEN")
 
-    try:
-        data = json.loads(request.body)
-    except Exception:
-        return {'statusCode': 400, 'body': 'bad request'}
+def send_message(chat_id, text):
+    url = f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage"
+    data = json.dumps({"chat_id": chat_id, "text": text}).encode("utf-8")
 
-    # Run aiogram update handler
-    asyncio.run(handle_update(data))
-    return {'statusCode': 200, 'body': 'OK'}
+    req = urllib.request.Request(url, data=data, headers={"Content-Type": "application/json"})
+    urllib.request.urlopen(req)
+
+
+class handler(BaseHTTPRequestHandler):
+    def do_POST(self):
+        content_length = int(self.headers.get("Content-Length", 0))
+        body = self.rfile.read(content_length)
+
+        try:
+            update = json.loads(body.decode("utf-8"))
+
+            message = update.get("message", {}).get("text")
+            chat_id = update.get("message", {}).get("chat", {}).get("id")
+
+            if message == "/event":
+                send_message(chat_id, "Подія: спорт-бот працює!")
+
+        except Exception as e:
+            pass  # важливо — Telegram не любить 500 errors
+
+        self.send_response(200)
+        self.send_header("Content-Type", "application/json")
+        self.end_headers()
+        self.wfile.write(json.dumps({"ok": True}).encode("utf-8"))
